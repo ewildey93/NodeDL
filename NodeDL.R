@@ -6,7 +6,7 @@ library(dplyr)
 tags <- read.csv("C:/Users/eliwi/OneDrive/Documents/PrairieDog/PrairieDogCollars.csv")
 #make sure tags column is named "TagId"##########
 colnames(tags)[1] <- "TagId"
-infile <- "C:/Users/eliwi/OneDrive/Documents/NodeTest"
+infile <- "C:/Users/eliwi/OneDrive/Documents/R/NodeDL/NodeTest"
 t <- 1209600
 
 #############get range of dates you want to filter by#########################
@@ -15,7 +15,10 @@ startvec <- seq.POSIXt(from = as.POSIXct("2020-07-15 00:00:00", tz= "GMT") ,to =
 
 
 ###################load node data function############################
-LoadNodes <- function(infile, startvec, t, tags) {
+#must specify either t or endvec depending on how you want to split up incoming data. t is in seconds
+#such as t=1209600 for 2 week intervals and endvec is user-specified intervals of differing lengths used
+#in situations where perhaps nodes were rearranged
+LoadNodes <- function(infile, startvec, t=NULL, tags, endvec=NULL) {
   files <- list.files(infile, pattern = "beep*", full.names = TRUE, recursive = TRUE)
   Sam3 <- lapply(files, function(x) {
     df <- tryCatch({
@@ -31,7 +34,13 @@ LoadNodes <- function(infile, startvec, t, tags) {
     df$filepath <- dirname(x)
     #direcnames <- basename(dirname(x))
     #breaks beep data into timeframes 
-    df <- lapply(startvec, function(x) subset(df, time >= x & time <= x + t))
+    if (is.null(t)){
+      DateRanges <- data.frame("Start"=startvec, "End"=endvec)
+      df <- lapply(1:nrow(DateRanges), function(i) {
+        df[which(df$time >= DateRanges[i, "Start"] &
+                   df$time <= DateRanges[i, "End"]), , drop = FALSE]})   
+    }
+    else {df <- lapply(startvec, function(x) subset(df, time >= x & time <= x + t))}
     return(df)
     })
   
@@ -43,11 +52,15 @@ files <- files[!duplicated(Sam3)]
 nodenames <- sapply (files, function (x) {
             if (file.size(x) > 0) {basename(dirname(x))}
             })
-#nodenames = basename(dirname(files))
-varB = sapply(nodenames, function (x) paste(x, format(as.Date(startvec), "%m-%d"), format(as.Date(startvec + t), "%m-%d"),sep = "."),simplify = "vector")
+if (is.null(endvec)){varB = sapply(nodenames, function (x) paste(x, format(as.Date(startvec), "%m-%d"), format(as.Date(startvec + 60*60*24*14), "%m-%d"),sep = "."),simplify = "vector")}
+else{varB=sapply(nodenames, function (x) paste(x, format(as.Date(startvec), "%m-%d"), format(as.Date(endvec), "%m-%d"),sep = "."),simplify = "vector")}
 p <- unlist(Sam3, recursive=FALSE)
+#set names of node-date dataframes
 p <- setNames(p,as.vector(varB))
-varC <-paste(format(as.Date(startvec), "%m-%d"), format(as.Date(startvec + t), "%m-%d"),sep = ".") 
+#make names for 2nd level list, just date
+if (is.null(endvec)){varC <-paste(format(as.Date(startvec), "%m-%d"), format(as.Date(startvec + t), "%m-%d"),sep = ".")}
+else{varC <-paste(format(as.Date(startvec), "%m-%d"), format(as.Date(endvec), "%m-%d"),sep = ".")}
+#rearrange into lists based on time frame, unnesting list
 lst1 <- split(p, varC)
 lst2 <- lapply(lst1, function (x) data.table::rbindlist(x,idcol = "file"))
 
