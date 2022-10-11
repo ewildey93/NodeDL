@@ -68,7 +68,7 @@ lst2 <- lapply(lst2, function (x) {x$RadioId <- 4
                                     colnames(x)[c(2,3,4)] <- c("DateTime","TagId", "TagRSSI")
                                     x$Validated <- 0
                                     ;x})
-
+lst2 <- lapply(lst2, function (x) x[!duplicated(x)])
 return(lst2)}
 
 #get rid of empty dataframe############################################################
