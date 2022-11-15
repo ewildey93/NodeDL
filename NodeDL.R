@@ -1,12 +1,14 @@
 library(data.table)
 library(dplyr)
-
+setwd("C:/Users/eliwi/OneDrive/Documents/R/NodeDL/NodeTest")
 
 #tags is now an argument in loadnodes function
 tags <- read.csv("C:/Users/eliwi/OneDrive/Documents/PrairieDog/PrairieDogCollars.csv")
 #make sure tags column is named "TagId"##########
 colnames(tags)[1] <- "TagId"
 infile <- "C:/Users/eliwi/OneDrive/Documents/R/NodeDL/NodeTest"
+#time argument in seconds if planning 
+#to break up data in consistent 2 week intervals in this case
 t <- 1209600
 
 #############get range of dates you want to filter by#########################
@@ -29,6 +31,8 @@ LoadNodes <- function(infile, startvec, t=NULL, tags, endvec=NULL) {
         print(paste("Read.table didn't work!:  ",err))
       })
     #if(!all((c("time", "id", "rssi") %in% colnames(df)))) {df <- NULL}
+    #if this line of data is nonsense filter it out
+    # col1 AND col1 AND col3, which
     df <- df[df$id %in% tags$TagId,]
     df$time <- as.POSIXct(df$time,format="%Y-%m-%dT%H:%M:%SZ" , time="GMT")
     df$filepath <- dirname(x)
@@ -46,6 +50,9 @@ LoadNodes <- function(infile, startvec, t=NULL, tags, endvec=NULL) {
   
 Sam3 <- Sam3[!duplicated(Sam3)]
 files <- files[!duplicated(Sam3)]
+#need to add bit in here to remove corrupted lines of data that messes up later steps
+
+
 
 #name nested list, rbinds by common timespan, adds other columns
 
